@@ -12,7 +12,7 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "api/status",
+      "launchUrl": "receiver/status",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -20,7 +20,7 @@
     "MessageReceiver": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "api/status",
+      "launchUrl": "receiver/status",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
@@ -33,7 +33,7 @@
     "Docker": {
       "commandName": "Docker",
       "launchBrowser": true,
-      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/api/status"
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/emitter/status"
     }
   }
 }

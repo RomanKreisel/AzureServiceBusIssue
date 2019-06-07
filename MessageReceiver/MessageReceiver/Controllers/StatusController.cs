@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MessageReceiver.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,24 +9,32 @@ namespace MessageReceiver.Controllers
     [ApiController]
     public class StatusController : ControllerBase
     {
-        private readonly MessageReceiverService _messageReceiverService;
+        private readonly ReceiverStatusService _receiverStatusService;
 
-        public StatusController(MessageReceiverService messageReceiverService)
+        public StatusController(ReceiverStatusService receiverStatusService)
         {
-            _messageReceiverService = messageReceiverService;
+            _receiverStatusService = receiverStatusService;
         }
 
         [HttpGet]
         public ActionResult<object> Get()
         {
-            var critical = DateTimeOffset.Now - _messageReceiverService.LastMessageReceived.DateTime >
-                           TimeSpan.FromMinutes(5);
-            return new
+            var instanceList = this._receiverStatusService.GetStatus();
+            var allOk = true;
+            foreach(var instance in instanceList)
             {
-                startTime = _messageReceiverService.StartTime,
-                messageCount = _messageReceiverService.MessagesReceived,
-                lastMessageReceived = _messageReceiverService.LastMessageReceived,
-                critical
+                if (instance.Value.Critical)
+                {
+                    allOk = false;
+                    break;
+                }
+            }
+
+            return new 
+            {
+                critical = !allOk,
+                instanceList
+
             };
         }
     }
