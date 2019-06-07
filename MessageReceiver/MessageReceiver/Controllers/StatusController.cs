@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MessageReceiver.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("receiver/[controller]")]
     [ApiController]
     public class StatusController : ControllerBase
     {
