@@ -2,7 +2,7 @@
 {
     public class ServiceBusOptions
     {
-        public int SimulateProcessingMilliseconds = 50;
+        public int SimulateProcessingMilliseconds = 0;
         public string ConnectionString { get; set; }
 
         public string QueueName { get; set; }
