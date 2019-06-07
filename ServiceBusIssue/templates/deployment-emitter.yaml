@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ServiceBusIssue.fullname" . }}-emitter
+  labels:
+    app.kubernetes.io/name: {{ include "ServiceBusIssue.name" . }}-emitter
+    helm.sh/chart: {{ include "ServiceBusIssue.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.emitter.replica.count }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ServiceBusIssue.name" . }}-emitter
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ServiceBusIssue.name" . }}-emitter
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.emitter.image.repository }}:{{ .Values.emitter.image.tag }}"
+          imagePullPolicy: {{ .Values.emitter.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /emitter/status
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /emitter/status
+              port: http
+          env:
+            - name: SERVICEBUS__CONNECTIONSTRING
+              value: "{{ .Values.servicebus.connectionString }}"
+            - name: SERVICEBUS__QUEUENAME
+              value: "{{ .Values.servicebus.queueName }}"
+            - name: SERVICEBUS__MESSAGESIZE
+              value: "{{ .Values.servicebus.messageSize }}"
+            - name: SERVICEBUS__BATCHSIZE
+              value: "{{ .Values.servicebus.batchSize }}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
