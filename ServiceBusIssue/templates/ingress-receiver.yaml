@@ -2,9 +2,9 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{ $fullName }}-emitter
+  name: {{ $fullName }}-receiver
   labels:
-    app.kubernetes.io/name: {{ include "ServiceBusIssue.name" . }}-emitter
+    app.kubernetes.io/name: {{ include "ServiceBusIssue.name" . }}-receiver
     helm.sh/chart: {{ include "ServiceBusIssue.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
@@ -28,9 +28,9 @@ spec:
     - host: {{ .host | quote }}
       http:
         paths:
-          - path: /emitter/
+          - path: /receiver/
             backend:
-              serviceName: {{ $fullName }}-emitter
+              serviceName: {{ $fullName }}-receiver
               servicePort: 80
             
   {{- end }}

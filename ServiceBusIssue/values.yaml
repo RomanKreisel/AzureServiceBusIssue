@@ -23,6 +23,10 @@ servicebus:
   queueName: ""
   messageSize: 1024
   batchSize: 10
+  prefetchCount: 100
+  workers: 2
+  maxAutoRenewSeconds: 60
+  simulateProcessingMilliseconds: 0
 
 
 
@@ -34,7 +38,6 @@ service:
   port: 80
 
 ingress:
-  enabled: true
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
