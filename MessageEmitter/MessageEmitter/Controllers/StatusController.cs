@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MessageEmitter.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("emitter/[controller]")]
     [ApiController]
     public class StatusController : ControllerBase
     {
