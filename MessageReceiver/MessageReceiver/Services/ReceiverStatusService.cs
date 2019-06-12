@@ -61,6 +61,7 @@ namespace MessageReceiver.Services
                     _receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes
                         {Start = _downSince, End = lastMessageReceived});
                     this._logger.LogWarning($"Node {Environment.MachineName} recovered after {lastMessageReceived-_downSince}");
+                    this._downSince = DateTimeOffset.MinValue;
                 }
                 redisClient.Set($"{Environment.MachineName}", _receiverStatus);
             }
