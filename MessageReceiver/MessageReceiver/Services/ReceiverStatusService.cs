@@ -50,12 +50,18 @@ namespace MessageReceiver.Services
                 _receiverStatus.LastStatusUpdate = DateTimeOffset.Now;
                 _receiverStatus.Critical =
                     _receiverStatus.LastStatusUpdate - _receiverStatus.LastMessageReceived.DateTime >
-                    TimeSpan.FromMinutes(5);
+                    TimeSpan.FromMinutes(1);
                 if (_receiverStatus.Critical && _downSince == DateTimeOffset.MinValue)
+                {
                     _downSince = lastMessageReceived;
+                    this._logger.LogWarning($"Node {Environment.MachineName} didn't receive any new message for {DateTimeOffset.Now-lastMessageReceived}");
+                }
                 else if (!_receiverStatus.Critical && _downSince != DateTimeOffset.MinValue)
+                {
                     _receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes
                         {Start = _downSince, End = lastMessageReceived});
+                    this._logger.LogWarning($"Node {Environment.MachineName} recovered after {lastMessageReceived-_downSince}");
+                }
                 redisClient.Set($"{Environment.MachineName}", _receiverStatus);
             }
         }
