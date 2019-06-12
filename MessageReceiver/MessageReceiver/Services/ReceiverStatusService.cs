@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using MessageReceiver.Options;
+﻿using MessageReceiver.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServiceStack.Redis;
+using System;
+using System.Collections.Generic;
 
 namespace MessageReceiver.Services
 {
@@ -13,14 +12,26 @@ namespace MessageReceiver.Services
         public DateTimeOffset LastMessageReceived { get; set; }
         public DateTimeOffset LastStatusUpdate { get; set; }
         public long NumberOfMessagesReceived { get; set; }
-        public Boolean Critical { get; set; } = false;
 
+        public List<ReceiverDowntimes> ReceiverDowntimes { get; } = new List<ReceiverDowntimes>();
+
+        public Boolean Critical { get; set; } = false;
+    }
+
+    public class ReceiverDowntimes
+    {
+        public DateTimeOffset Start { get; set; }
+        public DateTimeOffset End { get; set; }
+
+        public TimeSpan Duration => this.End - this.Start;
     }
 
     public class ReceiverStatusService
     {
-        private IOptions<ReceiverStatusOptions> _receiverStatusOptions;
-        private ILogger _logger;
+        private readonly IOptions<ReceiverStatusOptions> _receiverStatusOptions;
+        private readonly ILogger _logger;
+        private DateTimeOffset _downSince = DateTimeOffset.MinValue;
+        private readonly ReceiverStatus _receiverStatus = new ReceiverStatus();
 
         public ReceiverStatusService(IOptions<ReceiverStatusOptions> receiverStatusOptions, ILoggerFactory loggerFactory)
         {
@@ -33,15 +44,20 @@ namespace MessageReceiver.Services
             using (var redisClient = new RedisClient(this._receiverStatusOptions.Value.RedisDatabaseHostname,
                 this._receiverStatusOptions.Value.RedisDatabasePort))
             {
-                var receiverStatus = new ReceiverStatus
-                {
-                    LastMessageReceived = lastMessageReceived,
-                    NumberOfMessagesReceived = numberOfMessagesReceived,
-                    LastStatusUpdate = DateTimeOffset.Now
-                };
-                receiverStatus.Critical = receiverStatus.LastStatusUpdate - receiverStatus.LastMessageReceived.DateTime >
+                this._receiverStatus.LastMessageReceived = lastMessageReceived;
+                this._receiverStatus.NumberOfMessagesReceived = numberOfMessagesReceived;
+                this._receiverStatus.LastStatusUpdate = DateTimeOffset.Now;
+                this._receiverStatus.Critical = _receiverStatus.LastStatusUpdate - _receiverStatus.LastMessageReceived.DateTime>
                                TimeSpan.FromMinutes(5);
-                redisClient.Set($"{Environment.MachineName}", receiverStatus);
+                if (_receiverStatus.Critical && this._downSince == DateTimeOffset.MinValue)
+                {
+                    this._downSince = lastMessageReceived;
+                }
+                else if (!_receiverStatus.Critical && this._downSince != DateTimeOffset.MinValue)
+                {
+                    this._receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes { Start = this._downSince, End = lastMessageReceived });
+                }
+                redisClient.Set($"{Environment.MachineName}", _receiverStatus);
             }
         }
 
