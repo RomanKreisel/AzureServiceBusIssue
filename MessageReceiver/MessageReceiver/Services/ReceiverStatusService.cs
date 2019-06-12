@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using MessageReceiver.Options;
+﻿using MessageReceiver.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServiceStack.Redis;
+using System;
+using System.Collections.Generic;
 
 namespace MessageReceiver.Services
 {
@@ -45,45 +45,52 @@ namespace MessageReceiver.Services
 
         public void UpdateStatus(DateTimeOffset lastMessageReceived, long numberOfMessagesReceived)
         {
-            using (var redisClient = new RedisClient(_receiverStatusOptions.Value.RedisDatabaseHostname,
-                _receiverStatusOptions.Value.RedisDatabasePort))
+            try
             {
-                _receiverStatus.LastMessageReceived = lastMessageReceived;
-                _receiverStatus.NumberOfMessagesReceived = numberOfMessagesReceived;
-                _receiverStatus.LastStatusUpdate = DateTimeOffset.Now;
-                _receiverStatus.Critical =
-                    _receiverStatus.LastStatusUpdate - _receiverStatus.LastMessageReceived.DateTime >
-                    TimeSpan.FromMinutes(1);
-                if (_receiverStatus.Critical)
+                using (var redisClient = new RedisClient(_receiverStatusOptions.Value.RedisDatabaseHostname,
+                    _receiverStatusOptions.Value.RedisDatabasePort))
                 {
-                    if (_downSince == DateTimeOffset.MinValue)
+                    _receiverStatus.LastMessageReceived = lastMessageReceived;
+                    _receiverStatus.NumberOfMessagesReceived = numberOfMessagesReceived;
+                    _receiverStatus.LastStatusUpdate = DateTimeOffset.Now;
+                    _receiverStatus.Critical =
+                        _receiverStatus.LastStatusUpdate - _receiverStatus.LastMessageReceived.DateTime >
+                        TimeSpan.FromMinutes(1);
+                    if (_receiverStatus.Critical)
                     {
-                        _downSince = lastMessageReceived;
+                        if (_downSince == DateTimeOffset.MinValue)
+                        {
+                            _downSince = lastMessageReceived;
+                        }
+                        this._logger.LogWarning($"Node {Environment.MachineName} didn't receive any new message for {DateTimeOffset.Now - lastMessageReceived}");
                     }
-                    this._logger.LogWarning($"Node {Environment.MachineName} didn't receive any new message for {DateTimeOffset.Now-lastMessageReceived}");
-                }
-                else if (!_receiverStatus.Critical && _downSince != DateTimeOffset.MinValue)
-                {
-                    _receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes
-                        {Start = _downSince, End = lastMessageReceived});
-                    this._logger.LogWarning($"Node {Environment.MachineName} recovered after {lastMessageReceived-_downSince}");
-                    this._downSince = DateTimeOffset.MinValue;
-                }
+                    else if (!_receiverStatus.Critical && _downSince != DateTimeOffset.MinValue)
+                    {
+                        _receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes
+                        { Start = _downSince, End = lastMessageReceived });
+                        this._logger.LogWarning($"Node {Environment.MachineName} recovered after {lastMessageReceived - _downSince}");
+                        this._downSince = DateTimeOffset.MinValue;
+                    }
 
-                var cumulatedDowntime = TimeSpan.Zero;
-                foreach (var downTime in this._receiverStatus.ReceiverDowntimes)
-                {
-                    cumulatedDowntime += (downTime.End-downTime.Start);
+                    var cumulatedDowntime = TimeSpan.Zero;
+                    foreach (var downTime in this._receiverStatus.ReceiverDowntimes)
+                    {
+                        cumulatedDowntime += (downTime.End - downTime.Start);
+                    }
+
+                    if (_downSince != DateTimeOffset.MinValue)
+                    {
+                        cumulatedDowntime += lastMessageReceived - _downSince;
+                    }
+
+                    this._receiverStatus.CumulatedDownTime = cumulatedDowntime;
+
+                    redisClient.Set($"{Environment.MachineName}", _receiverStatus);
                 }
-
-                if (_downSince != DateTimeOffset.MinValue)
-                {
-                    cumulatedDowntime += lastMessageReceived - _downSince;
-                }
-
-                this._receiverStatus.CumulatedDownTime = cumulatedDowntime;
-
-                redisClient.Set($"{Environment.MachineName}", _receiverStatus);
+            }
+            catch (RedisException e)
+            {
+                this._logger.LogWarning(e, "Error pushing status update to redis store");
             }
         }
 

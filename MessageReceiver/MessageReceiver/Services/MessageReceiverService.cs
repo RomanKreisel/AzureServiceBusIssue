@@ -79,7 +79,7 @@ namespace MessageReceiver.Services
         private void RunPeriodicalHealthCheck()
         {
             //warmup
-            Thread.Sleep(60000);
+            Thread.Sleep(120000);
 
             while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
