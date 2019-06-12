@@ -78,6 +78,9 @@ namespace MessageReceiver.Services
 
         private void RunPeriodicalHealthCheck()
         {
+            //warmup
+            Thread.Sleep(60000);
+
             while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
                 if (DateTimeOffset.Now - _lastMessageReceived > TimeSpan.FromMinutes(5))
@@ -99,7 +102,7 @@ namespace MessageReceiver.Services
         private void Run()
         {
             //warmup
-            Thread.Sleep(10000);
+            Thread.Sleep(60000);
 
             _client = new QueueClient(_serviceBusOptions.Value.ConnectionString,
                 _serviceBusOptions.Value.QueueName, ReceiveMode.PeekLock, RetryPolicy.Default)
