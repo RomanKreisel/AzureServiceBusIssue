@@ -102,7 +102,7 @@ namespace MessageReceiver.Services
         private void Run()
         {
             //warmup
-            Thread.Sleep(60000);
+            Thread.Sleep(45000);
 
             _client = new QueueClient(_serviceBusOptions.Value.ConnectionString,
                 _serviceBusOptions.Value.QueueName, ReceiveMode.PeekLock, RetryPolicy.Default)
