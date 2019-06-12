@@ -35,21 +35,22 @@ namespace MessageReceiver.Services
     public class MessageReceiverService
     {
         private readonly ILogger _logger;
+        private readonly ReceiverStatusService _receiverStatusService;
         private readonly IOptions<ServiceBusOptions> _serviceBusOptions;
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private QueueClient _client;
-        private readonly ReceiverStatusService _receiverStatusService;
+        private DateTimeOffset _lastMessageReceived = DateTimeOffset.Now;
 
-        public MessageReceiverService(ILoggerFactory loggerFactory, IOptions<ServiceBusOptions> serviceBusOptions, ReceiverStatusService receiverStatusService)
+        private long _messagesReceived;
+        private DateTimeOffset _startTime = DateTimeOffset.Now;
+
+        public MessageReceiverService(ILoggerFactory loggerFactory, IOptions<ServiceBusOptions> serviceBusOptions,
+            ReceiverStatusService receiverStatusService)
         {
             _logger = loggerFactory.CreateLogger(GetType());
             _serviceBusOptions = serviceBusOptions;
             _receiverStatusService = receiverStatusService;
         }
-
-        private long _messagesReceived = 0;
-        private DateTimeOffset _startTime  = DateTimeOffset.Now;
-        private DateTimeOffset _lastMessageReceived = DateTimeOffset.Now;
 
 
         public void RegisterForApplication(IApplicationLifetime app)
@@ -79,10 +80,10 @@ namespace MessageReceiver.Services
         {
             while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
-                if (DateTimeOffset.Now - this._lastMessageReceived > TimeSpan.FromMinutes(5))
+                if (DateTimeOffset.Now - _lastMessageReceived > TimeSpan.FromMinutes(5))
                     _logger.LogError(
-                        $"No messages were received for {DateTimeOffset.Now - this._lastMessageReceived}");
-                this._receiverStatusService.UpdateStatus(this._lastMessageReceived, this._messagesReceived);
+                        $"No messages were received for {DateTimeOffset.Now - _lastMessageReceived}");
+                _receiverStatusService.UpdateStatus(_lastMessageReceived, _messagesReceived);
                 Thread.Sleep(TimeSpan.FromSeconds(5));
             }
         }
@@ -106,7 +107,7 @@ namespace MessageReceiver.Services
                 PrefetchCount = _serviceBusOptions.Value.PrefetchCount
             };
 
-            this._startTime = DateTimeOffset.Now;
+            _startTime = DateTimeOffset.Now;
             _client.RegisterMessageHandler((message, token) =>
             {
                 try
@@ -118,7 +119,7 @@ namespace MessageReceiver.Services
                     {
                         _logger.LogTrace($"Message with {length} bytes received");
                         _messagesReceived++;
-                        this._lastMessageReceived = DateTimeOffset.Now;
+                        _lastMessageReceived = DateTimeOffset.Now;
                         _client.CompleteAsync(message.SystemProperties.LockToken);
                     }
                 }

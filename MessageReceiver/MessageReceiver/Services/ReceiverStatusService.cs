@@ -1,9 +1,9 @@
-﻿using MessageReceiver.Options;
+﻿using System;
+using System.Collections.Generic;
+using MessageReceiver.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServiceStack.Redis;
-using System;
-using System.Collections.Generic;
 
 namespace MessageReceiver.Services
 {
@@ -15,7 +15,7 @@ namespace MessageReceiver.Services
 
         public List<ReceiverDowntimes> ReceiverDowntimes { get; } = new List<ReceiverDowntimes>();
 
-        public Boolean Critical { get; set; } = false;
+        public bool Critical { get; set; }
     }
 
     public class ReceiverDowntimes
@@ -23,54 +23,51 @@ namespace MessageReceiver.Services
         public DateTimeOffset Start { get; set; }
         public DateTimeOffset End { get; set; }
 
-        public TimeSpan Duration => this.End - this.Start;
+        public TimeSpan Duration => End - Start;
     }
 
     public class ReceiverStatusService
     {
-        private readonly IOptions<ReceiverStatusOptions> _receiverStatusOptions;
         private readonly ILogger _logger;
-        private DateTimeOffset _downSince = DateTimeOffset.MinValue;
         private readonly ReceiverStatus _receiverStatus = new ReceiverStatus();
+        private readonly IOptions<ReceiverStatusOptions> _receiverStatusOptions;
+        private DateTimeOffset _downSince = DateTimeOffset.MinValue;
 
-        public ReceiverStatusService(IOptions<ReceiverStatusOptions> receiverStatusOptions, ILoggerFactory loggerFactory)
+        public ReceiverStatusService(IOptions<ReceiverStatusOptions> receiverStatusOptions,
+            ILoggerFactory loggerFactory)
         {
-            this._receiverStatusOptions = receiverStatusOptions;
-            this._logger = loggerFactory.CreateLogger(this.GetType());
+            _receiverStatusOptions = receiverStatusOptions;
+            _logger = loggerFactory.CreateLogger(GetType());
         }
 
         public void UpdateStatus(DateTimeOffset lastMessageReceived, long numberOfMessagesReceived)
         {
-            using (var redisClient = new RedisClient(this._receiverStatusOptions.Value.RedisDatabaseHostname,
-                this._receiverStatusOptions.Value.RedisDatabasePort))
+            using (var redisClient = new RedisClient(_receiverStatusOptions.Value.RedisDatabaseHostname,
+                _receiverStatusOptions.Value.RedisDatabasePort))
             {
-                this._receiverStatus.LastMessageReceived = lastMessageReceived;
-                this._receiverStatus.NumberOfMessagesReceived = numberOfMessagesReceived;
-                this._receiverStatus.LastStatusUpdate = DateTimeOffset.Now;
-                this._receiverStatus.Critical = _receiverStatus.LastStatusUpdate - _receiverStatus.LastMessageReceived.DateTime>
-                               TimeSpan.FromMinutes(5);
-                if (_receiverStatus.Critical && this._downSince == DateTimeOffset.MinValue)
-                {
-                    this._downSince = lastMessageReceived;
-                }
-                else if (!_receiverStatus.Critical && this._downSince != DateTimeOffset.MinValue)
-                {
-                    this._receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes { Start = this._downSince, End = lastMessageReceived });
-                }
+                _receiverStatus.LastMessageReceived = lastMessageReceived;
+                _receiverStatus.NumberOfMessagesReceived = numberOfMessagesReceived;
+                _receiverStatus.LastStatusUpdate = DateTimeOffset.Now;
+                _receiverStatus.Critical =
+                    _receiverStatus.LastStatusUpdate - _receiverStatus.LastMessageReceived.DateTime >
+                    TimeSpan.FromMinutes(5);
+                if (_receiverStatus.Critical && _downSince == DateTimeOffset.MinValue)
+                    _downSince = lastMessageReceived;
+                else if (!_receiverStatus.Critical && _downSince != DateTimeOffset.MinValue)
+                    _receiverStatus.ReceiverDowntimes.Add(new ReceiverDowntimes
+                        {Start = _downSince, End = lastMessageReceived});
                 redisClient.Set($"{Environment.MachineName}", _receiverStatus);
             }
         }
 
         public Dictionary<string, ReceiverStatus> GetStatus()
         {
-            using (var redisClient = new RedisClient(this._receiverStatusOptions.Value.RedisDatabaseHostname,
-                this._receiverStatusOptions.Value.RedisDatabasePort))
+            using (var redisClient = new RedisClient(_receiverStatusOptions.Value.RedisDatabaseHostname,
+                _receiverStatusOptions.Value.RedisDatabasePort))
             {
                 var result = new Dictionary<string, ReceiverStatus>();
                 foreach (var key in redisClient.GetAllKeys())
-                {
                     if (key != "counter")
-                    {
                         try
                         {
                             var content = redisClient.Get<ReceiverStatus>(key);
@@ -78,10 +75,8 @@ namespace MessageReceiver.Services
                         }
                         catch (Exception e)
                         {
-                            this._logger.LogWarning($"Error reading receiver status from key {key}");
+                            _logger.LogWarning($"Error reading receiver status from key {key}");
                         }
-                    }
-                }
 
                 return result;
             }

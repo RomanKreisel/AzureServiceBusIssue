@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using MessageReceiver.Services;
+﻿using MessageReceiver.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MessageReceiver.Controllers
@@ -19,22 +17,19 @@ namespace MessageReceiver.Controllers
         [HttpGet]
         public ActionResult<object> Get()
         {
-            var instanceList = this._receiverStatusService.GetStatus();
+            var instanceList = _receiverStatusService.GetStatus();
             var allOk = true;
-            foreach(var instance in instanceList)
-            {
+            foreach (var instance in instanceList)
                 if (instance.Value.Critical)
                 {
                     allOk = false;
                     break;
                 }
-            }
 
-            return new 
+            return new
             {
                 critical = !allOk,
                 instanceList
-
             };
         }
     }
