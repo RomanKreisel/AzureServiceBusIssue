@@ -83,9 +83,6 @@ namespace MessageReceiver.Services
 
             while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
-                if (DateTimeOffset.Now - _lastMessageReceived > TimeSpan.FromMinutes(5))
-                    _logger.LogError(
-                        $"No messages were received for {DateTimeOffset.Now - _lastMessageReceived}");
                 _receiverStatusService.UpdateStatus(_lastMessageReceived, _messagesReceived);
                 Thread.Sleep(TimeSpan.FromSeconds(5));
             }
