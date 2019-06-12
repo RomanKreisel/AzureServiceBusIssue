@@ -9,11 +9,14 @@ namespace MessageReceiver.Services
 {
     public class ReceiverStatus
     {
+        public DateTimeOffset NodeStartTime = DateTimeOffset.Now;
         public DateTimeOffset LastMessageReceived { get; set; }
         public DateTimeOffset LastStatusUpdate { get; set; }
         public long NumberOfMessagesReceived { get; set; }
 
         public List<ReceiverDowntimes> ReceiverDowntimes { get; set; } = new List<ReceiverDowntimes>();
+
+        public TimeSpan CumulatedDownTime { get; set; } = TimeSpan.Zero;
 
         public bool Critical { get; set; }
     }
@@ -63,6 +66,20 @@ namespace MessageReceiver.Services
                     this._logger.LogWarning($"Node {Environment.MachineName} recovered after {lastMessageReceived-_downSince}");
                     this._downSince = DateTimeOffset.MinValue;
                 }
+
+                var cumulatedDowntime = TimeSpan.Zero;
+                foreach (var downTime in this._receiverStatus.ReceiverDowntimes)
+                {
+                    cumulatedDowntime += (downTime.End-downTime.Start);
+                }
+
+                if (_downSince != DateTimeOffset.MinValue)
+                {
+                    cumulatedDowntime += lastMessageReceived - _downSince;
+                }
+
+                this._receiverStatus.CumulatedDownTime = cumulatedDowntime;
+
                 redisClient.Set($"{Environment.MachineName}", _receiverStatus);
             }
         }
