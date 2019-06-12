@@ -13,7 +13,7 @@ namespace MessageReceiver.Services
         public DateTimeOffset LastStatusUpdate { get; set; }
         public long NumberOfMessagesReceived { get; set; }
 
-        public List<ReceiverDowntimes> ReceiverDowntimes { get; } = new List<ReceiverDowntimes>();
+        public List<ReceiverDowntimes> ReceiverDowntimes { get; set; } = new List<ReceiverDowntimes>();
 
         public bool Critical { get; set; }
     }
