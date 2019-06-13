@@ -16,17 +16,17 @@ receiver:
     tag: latest
     pullPolicy: Always
   replica:
-    count: 1
+    count: 10
 
 servicebus:
   connectionString: ""
   queueName: ""
   messageSize: 1024
   batchSize: 10
-  prefetchCount: 100
+  prefetchCount: 2
   workers: 2
   maxAutoRenewSeconds: 60
-  simulateProcessingMilliseconds: 0
+  simulateProcessingMilliseconds: 300
 
 
 
