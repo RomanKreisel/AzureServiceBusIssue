@@ -9,7 +9,7 @@ namespace MessageReceiver.Services
 {
     public class ReceiverStatus
     {
-        public DateTimeOffset NodeStartTime = DateTimeOffset.Now;
+        public DateTimeOffset NodeStartTime { get; set; }
         public DateTimeOffset LastMessageReceived { get; set; }
         public DateTimeOffset LastStatusUpdate { get; set; }
         public long NumberOfMessagesReceived { get; set; }
@@ -41,6 +41,7 @@ namespace MessageReceiver.Services
         {
             _receiverStatusOptions = receiverStatusOptions;
             _logger = loggerFactory.CreateLogger(GetType());
+            _receiverStatus.NodeStartTime = DateTimeOffset.Now;
         }
 
         public void UpdateStatus(DateTimeOffset lastMessageReceived, long numberOfMessagesReceived)
