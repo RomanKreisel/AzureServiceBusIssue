@@ -27,14 +27,6 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /receiver/status
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /receiver/status
-              port: http
           env:
             - name: SERVICEBUS__CONNECTIONSTRING
               value: "{{ .Values.servicebus.connectionString }}"
